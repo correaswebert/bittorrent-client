@@ -11,7 +11,7 @@ def _parse_str(tdata: bytes | str, idx: int = 0):
     len_idx = idx
     strlen = 0
 
-    if isinstance(tdata, bytes):
+    if isinstance(tdata[idx], int):
         while ord("0") <= tdata[len_idx] <= ord("9"):
             strlen = strlen * 10 + tdata[len_idx] - ord("0")
             len_idx += 1
@@ -24,7 +24,7 @@ def _parse_str(tdata: bytes | str, idx: int = 0):
     end = start + strlen
 
     string = tdata[start:end]
-    if isinstance(string, bytes):
+    if isinstance(string, bytes) and string.isascii():
         string = string.decode()
 
     if len(string) != strlen:
@@ -134,5 +134,5 @@ def _parse(tdata: bytes | str, idx: int = 0):
     return result
 
 
-def bdecode(tdata: bytes):
+def bdecode(tdata: bytes) -> str | int | list | dict:
     return _parse(tdata).data
