@@ -121,11 +121,6 @@ def _parse(tdata: bytes, idx: int = 0):
 
     return result
 
-def parse(tdata: bytes):
+def bdecode(tdata: bytes):
     return _parse(tdata).data
 
-if __name__ == "__main__":
-    tdata = b'd8:announce41:https://academictorrents.com/announce.php13:announce-listll41:https://academictorrents.com/announce.phpel34:udp://tracker.coppersurfer.tk:6969el42:udp://tracker.opentrackr.org:1337/announceel44:udp://tracker.openbittorrent.com:80/announceee10:created by25:Transmission/2.84 (14307)13:creation datei1483953530e8:encoding5:UTF-84:infod6:lengthi161539e4:name64:A-Brief-Review-of-NatureInspired-Algorithms-for-Optimization.pdf12:piece lengthi32768e6:pieces100:\x9a\xe4\xfa\x14\xb6\x1d\x91\xca\xa1y8\x96\xfd\xa6pzc\x06\x00Gq\xe4\xae\x1f\x1a\xd9\xd8[[m\x96\x9aT\xa8 \xad\xbc\x1a\xa9\x8a\x82>\x96\xe9\x16\x1b\xcfW\\\xce\x97 "\xeb@F3\x0bB\xf8\xc7F\xc7\xb5D\xe7?<\x16\x87?\xa5\x14Wv\xb1\xedb\xc8>\xf4;1\x11\xf9Qj\xf0)\xbd\xa4\xa6\x1aPA09|\xbbd7:privatei0ee8:url-listl56:http://www.iztok-jr-fister.eu/static/publications/21.pdfee'
-    tdata = b'l41:https://academictorrents.com/announce.phpe'
-    tdata = b'i0e'
-    print(parse(tdata))

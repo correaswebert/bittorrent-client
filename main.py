@@ -1,8 +1,8 @@
-from torrent.parser import parse
+from torrent.parser import bdecode
 
 if __name__ == "__main__":
     with open("data/small.torrent", "rb") as tfile:
         tdata = tfile.read()
     
-    data = parse(tdata)
+    data = bdecode(tdata)
     print(data)
