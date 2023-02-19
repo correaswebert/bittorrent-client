@@ -11,6 +11,6 @@ if __name__ == "__main__":
     metainfo_info_hash = hashlib.sha1(metainfo_info).digest()
 
     responses = get_peer_list(metainfo, metainfo_info_hash)
-    for response in responses:
-        print(bdecode(response.text))
+    # for response in responses:
+    #     print(bdecode(response.text))
 
