@@ -2,12 +2,18 @@ from contextlib import closing
 import random
 import socket
 import struct
-from urllib.parse import urlencode, urlparse
-import httpx
+
 import asyncio
+from urllib.parse import urlparse
+from async_dns.resolver import ProxyResolver
 
 
-def tracker_connect(t_ip, t_port):
+import asyncio_dgram
+
+resolver = ProxyResolver()
+
+
+async def tracker_connect(tracker_addr, stream):
     """connect phase of UDP tracker"""
 
     protocol_id = 0x41727101980  # constant
@@ -19,14 +25,8 @@ def tracker_connect(t_ip, t_port):
     )
 
     tracker_res_buffer = ...
-    with closing(socket.socket(socket.AF_INET, socket.SOCK_DGRAM)) as sock:
-        try:
-            sock.settimeout(5)
-            sock.sendto(tracker_req_buffer, (t_ip, t_port))
-            tracker_res_buffer = sock.recvfrom(16)
-        except socket.timeout:
-            print("Could not connect!")
-            return None
+    await stream.send(tracker_req_buffer, tracker_addr)
+    tracker_res_buffer, _ = await stream.recv(16)
 
     res_action, res_transaction_id, connection_id = struct.unpack(
         "!iiq", tracker_res_buffer[0]
@@ -37,9 +37,7 @@ def tracker_connect(t_ip, t_port):
     return None
 
 
-def tracker_announce(
-    connection_id, info_hash, tracker_ip, tracker_port, client_port, peer_id
-):
+def tracker_announce(tracker_addr, client_port, payload: dict[str, bytes | int]):
     """announce phase of UDP tracker"""
 
     req_action = 1  # announce
@@ -54,11 +52,11 @@ def tracker_announce(
 
     tracker_req_buffer = struct.pack(
         "!qii20s20sqqqiiiiH",
-        connection_id,
+        payload["connection_id"],
         req_action,
         req_transaction_id,
-        info_hash,
-        peer_id,
+        payload["info_hash"],
+        payload["peer_id"],
         downloaded,
         left,
         uploaded,
@@ -69,11 +67,11 @@ def tracker_announce(
         client_port,
     )
 
-    tracker_res_buffer = ...
+    tracker_res_buffer = b""
     with closing(socket.socket(socket.AF_INET, socket.SOCK_DGRAM)) as sock:
         try:
             sock.settimeout(5)
-            sock.sendto(tracker_req_buffer, (tracker_ip, tracker_port))
+            sock.sendto(tracker_req_buffer, tracker_addr)
             tracker_res_buffer = sock.recvfrom(4096)[0]
         except:
             print("Could not announce!")
@@ -102,60 +100,26 @@ def tracker_announce(
     return peer_list
 
 
-def get_peer_list_udp(tracker_addr, info_hash, client_port, peer_id):
-    t_ip, t_port = tracker_addr
+# async def get_peer_list_udp(tracker_addr, info_hash, client_port, peer_id):
+async def get_peer_list_udp(request_urls: list[str], payload: dict[str : bytes | int]):
 
-    try:
-        # print("Connecting to tracker...")
-        connection_id = tracker_connect(t_ip, t_port)
-
-        if connection_id is None:
-            return []
-
-        # print("Announcing to tracker...")
-        peer_list = tracker_announce(
-            connection_id, info_hash, t_ip, t_port, client_port, peer_id
-        )
-        return peer_list
-
-    except Exception as e:
-        print(e)
+    # tracker_ip = socket.getaddrinfo(
+    #     tracker_url.hostname, tracker_url.port, proto=socket.IPPROTO_UDP
+    # )[0][4][0]
 
 
+    client_port = 8888
+    stream = await asyncio_dgram.bind(("", client_port))
 
-async def get_peer_list_http(http_requests):
-    async with httpx.AsyncClient() as client:
-        coros = [client.get(url) for url in http_requests]
-        responses = await asyncio.gather(*coros)
+    tracker_addrs: list[tuple(str, int)] = []
+    for url in request_urls:
+        tracker_url = urlparse(url)
+        # result, _ = resolver.query(tracker_url.hostname, types.A)   # https://pypi.org/project/async-dns/
+        
+        tracker_ip = socket.getaddrinfo(
+            tracker_url.hostname, tracker_url.port, proto=socket.IPPROTO_UDP
+        )[0][4][0]
+        tracker_addrs.append((tracker_ip, tracker_url.port))
 
-    return responses
-
-def get_peer_list(metainfo: dict, metainfo_info_hash: bytes):
-    payload_args = urlencode(
-        {
-            "info_hash": metainfo_info_hash,
-            "peer_id": b"12345678901234567890",
-            "port": 1234,
-            "left": metainfo["info"]["length"],
-            "downloaded": 0,
-            "uploaded": 0,
-            "compact": 1,
-        }
-    )
-
-    urls: list[str] = [*metainfo["announce-list"], [metainfo["announce"]]]
-
-    http_requests = []
-    udp_requests = []
-
-    for url in urls:
-        url_info = urlparse(url[0])
-
-        if url_info.scheme == "udp":
-            udp_requests.append(f"{url[0]}?{payload_args}")
-        else:
-            http_requests.append(f"{url[0]}?{payload_args}")
-
-    http_responses = asyncio.run(get_peer_list_http(http_requests))
-    return http_responses
+    tracker_connect(tracker_addrs[0], stream)
 
