@@ -26,6 +26,10 @@ def bencode(tdata: str | int | list | dict) -> bytes:
         meta_info += f"{len(tdata)}:".encode()
         meta_info += tdata.encode()
 
+    elif isinstance(tdata, bytes):
+        meta_info += f"{len(tdata)}:".encode()
+        meta_info += tdata
+
     else:
         raise TypeError("Unknown type passed. Only str, int, list and dict allowed.")
 
