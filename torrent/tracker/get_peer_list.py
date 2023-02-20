@@ -30,6 +30,6 @@ def get_peer_list(metainfo: dict, metainfo_info_hash: bytes):
             http_requests.append(url)
 
     # http_responses = asyncio.run(get_peer_list_http(http_requests, payload_args))
-    udp_responses = asyncio.run(get_peer_list_udp(udp_requests, payload_args))
+    udp_responses = get_peer_list_udp(udp_requests, payload_args)
     print(udp_responses)
     # return http_responses
