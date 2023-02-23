@@ -1,5 +1,6 @@
 import logging
 from logging import WARNING
+from typing import Optional
 from colorlog import ColoredFormatter
 
 
@@ -26,7 +27,10 @@ log = logging.getLogger("root")
 log.addHandler(file)
 
 
-def set_log_level(loglevel):
+def set_log_level(loglevel: Optional[str]):
+    if loglevel is None:
+        loglevel = "WARNING"
+
     loglevel = loglevel.upper()
     if loglevel not in ["DEBUG", "INFO", "WARN", "WARNING", "ERROR", "CRITICAL"]:
         loglevel = logging.WARNING
