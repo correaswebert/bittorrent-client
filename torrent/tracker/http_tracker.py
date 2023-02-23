@@ -4,14 +4,27 @@ import httpx
 import asyncio
 
 from torrent.parser import bdecode
+import logging
+
+log = logging.getLogger("root")
 
 
-async def get_peer_list_http(http_requests, payload: dict[str, bytes | int]):
+async def get_peer_list_http(
+    http_requests, payload: dict[str, bytes | int]
+) -> list[httpx.Response]:
+    log.info("getting peer list using HTTP")
+
     urlencoded_payload = urlencode(payload)
     async with httpx.AsyncClient() as client:
-        coros = [client.get(f"{url}?{urlencoded_payload}") for url in http_requests]
-        responses = await asyncio.gather(*coros)
+        try:
+            coros = [client.get(f"{url}?{urlencoded_payload}") for url in http_requests]
+            return await asyncio.gather(*coros)
+        except httpx.ReadTimeout as rte:
+            log.error("Read timeout while getting peer list over HTTP")
+            return []
 
+
+def get_peer_list_from_responses(responses: list[httpx.Response]) -> tuple[str, int]:
     for benc_response in responses:
         response = bdecode(benc_response.text)
 
@@ -36,4 +49,10 @@ async def get_peer_list_http(http_requests, payload: dict[str, bytes | int]):
         else:
             print(f"Invalid peer list {enc_peers=}")
 
+    log.debug(peers)
     return peers
+
+
+def get_peers(http_requests, payload: dict[str, bytes | int]) -> tuple[str, int]:
+    responses = asyncio.run(get_peer_list_http(http_requests, payload))
+    return get_peer_list_from_responses(responses)
