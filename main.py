@@ -1,11 +1,9 @@
-import hashlib
-
 import click
 
 from torrent.common.metainfo import Metainfo
-from torrent.parser import bdecode, bencode
-from torrent.tracker import get_peers
-from torrent.util.logger import log, set_log_level, stream_logs
+from torrent import tracker
+from torrent.util.logger import set_log_level, stream_logs
+from torrent.peer.connect import Client
 
 
 @click.command()
@@ -19,8 +17,9 @@ def main(verbose: str, torrent: str):
 
     metainfo = Metainfo(torrent)
 
-    peers = get_peers(metainfo)
-    print(peers)
+    peers = tracker.get_peers(metainfo)
+    client = Client(metainfo)
+    client.download(peers)
 
 
 if __name__ == "__main__":
