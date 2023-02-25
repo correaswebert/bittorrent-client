@@ -1,10 +1,11 @@
+import asyncio
+import logging
 import struct
 from urllib.parse import urlencode
+
 import httpx
-import asyncio
 
 from torrent.parser import bdecode
-import logging
 
 log = logging.getLogger("root")
 
@@ -25,14 +26,16 @@ async def get_peer_list_http(
 
 
 def get_peer_list_from_responses(responses: list[httpx.Response]) -> tuple[str, int]:
+    peers = []
+
     for benc_response in responses:
         response = bdecode(benc_response.text)
+        log.debug(response)
 
         if "failure reason" in response:
             raise Exception(response["failure reason"])
 
         enc_peers: list[bytes] | bytes = response["peers"]
-        peers = []
 
         if isinstance(enc_peers, list):
             peers = [(peer["ip"], peer["port"]) for peer in enc_peers]
