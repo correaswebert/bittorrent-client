@@ -16,11 +16,9 @@ def main(verbose: str, torrent: str):
     stream_logs()
 
     metainfo = Metainfo(torrent)
-    print(metainfo
-          )
 
-    # peers = get_peers(metainfo, metainfo.info_hash)
-    # print(peers)
+    peers = get_peers(metainfo)
+    print(peers)
 
 
 if __name__ == "__main__":
