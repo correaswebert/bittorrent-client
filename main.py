@@ -1,10 +1,12 @@
 import hashlib
-from torrent.parser import bdecode, bencode
-from torrent.tracker import get_peers
+
+import click
 
 from torrent.common.metainfo import Metainfo
-import click
-from torrent.util.logger import log, stream_logs, set_log_level
+from torrent.parser import bdecode, bencode
+from torrent.tracker import get_peers
+from torrent.util.logger import log, set_log_level, stream_logs
+
 
 @click.command()
 @click.option("-v", "--verbose", help="Set logging verbosity")
