@@ -1,8 +1,8 @@
 import hashlib
-import pathlib
-from torrent import parser
-
 import logging
+import pathlib
+
+from torrent import parser
 
 log = logging.getLogger("root")
 

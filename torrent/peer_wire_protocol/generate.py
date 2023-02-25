@@ -1,48 +1,17 @@
-import enum
+from .type import PeerMessageType
 
 
-class PeerMessageType(enum.Enum):
-    """Non-keepalive messages
+def handshake(peer_id: bytes, info_hash: bytes) -> bytes:
+    """First message transmitted by the client to peer
 
-    :ref: https://www.bittorrent.org/beps/bep_0003.html#peer-messages
+    Message format is as follows:
+    <pstrlen><pstr><reserved><info_hash><peer_id>
+
+    :param peer_id:
+    :param info_hash:
     """
 
-    choke = 0x00
-    unchoke = 0x01
-    interested = 0x02
-    not_interested = 0x03
-
-    # Index which that downloader just completed and checked the hash of.
-    have = 0x04
-
-    # Optionally sent as the first message. If the downloader already has a
-    # piece, the corresponding index in the bitfield is set. MSB is index 0.
-    bitfield = 0x05
-
-    # Piece index, begin offset, and length. Length is a power of two unless it
-    # gets truncated by the end of the file.
-    request = 0x06
-
-    # Piece index, begin offset, and piece data.
-    piece = 0x07
-
-    # Piece index, begin offset, and length. Sent to everyone when a piece arrives.
-    cancel = 0x08
-
-
-class PeerMessage:
-    """<length prefix><message ID><payload>
-    The length prefix is a four byte big-endian value.
-    The message ID is a single decimal byte.
-    The payload is message dependent.
-    """
-
-    type: PeerMessageType
-    payload: None  # payload or piggy-backed data
-    extra: None  # piggy-backed data
-    verified: None  # are hashes verified
-    continuation: False  # are hashes verified
-    len: 0
+    return b"\x13BitTorrent protocol" + b"\x00" * 8 + info_hash + peer_id
 
 
 def generate_message(message_id: PeerMessageType, payload: bytes = b"") -> bytes:
@@ -55,7 +24,8 @@ def keepalive():
     Peers may close a connection if they receive no messages (keep-alive or
     any other message) for a certain period of time, generally two minutes.
     """
-    return b"\x00\x00\x00\x00"
+
+    return generate_message(b"")
 
 
 def choke():
@@ -75,7 +45,8 @@ def not_interested():
 
 
 def have(index: int):
-    """
+    """Index which that downloader just completed and checked the hash of.
+
     :param index: piece index
     """
 
@@ -83,29 +54,35 @@ def have(index: int):
 
 
 def bitfield(bitfield: bytes):
-    """
-    :param bitfield: bitfield of pieces already owned (MSB is index 0)
+    """Bitfield of the data owned by peer
+
+    Optionally sent as the first message. If the downloader already has a
+    piece, the corresponding index in the bitfield is set. MSB is index 0.
+
+    :param bitfield: bitfield of owned pieces
     """
 
     return generate_message(PeerMessageType.have, bitfield)
 
 
 def request(index: int, begin: int, length: int):
-    """
+    """Piece request by peer
+
     :param index: piece index
     :param begin: byte offset within the piece
-    :param length: requested length
+    :param length: requested length (power of 2, unless truncated by EOF)
     """
 
     payload = index.to_bytes(4, "big")
     payload += begin.to_bytes(4, "big")
     payload += length.to_bytes(4, "big")
-    
+
     return generate_message(PeerMessageType.have, payload)
 
 
 def piece(index: int, begin: int, block: int):
-    """
+    """Response for the piece request
+
     :param index: piece index
     :param begin: byte offset within the piece
     :param block: block of data
@@ -119,7 +96,8 @@ def piece(index: int, begin: int, block: int):
 
 
 def cancel(index: int, begin: int, length: int):
-    """
+    """Cancellation of piece request
+
     :param index: piece index
     :param begin: byte offset within the piece
     :param length: requested length
