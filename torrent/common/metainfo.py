@@ -9,15 +9,25 @@ log = logging.getLogger("root")
 
 class Metainfo:
     def __init__(self, metainfo_filepath: pathlib.Path):
+        self._metainfo_filepath = metainfo_filepath
+
         with open(metainfo_filepath, "rb") as tfile:
             tdata = tfile.read()
+        self.create_metainfo(tdata)
+    
+    def create_metainfo(self, metainfo_data: bytes):
+        metainfo = parser.bdecode(metainfo_data)
 
-        metainfo = parser.bdecode(tdata)
+        self.trackers: list[str] = []
+        if "announce-list" in metainfo:   
+            self.trackers = [tracker[0] for tracker in metainfo["announce-list"]]
+        if metainfo["announce"] not in self.trackers:
+            self.trackers.append(metainfo["announce"])
 
         if "name" in metainfo["info"]:
             self.name: str = metainfo["info"]["name"]
         else:
-            self.name = metainfo_filepath.stem
+            self.name = self._metainfo_filepath.stem
 
         self.piece_length: str = metainfo["info"]["piece length"]
 
